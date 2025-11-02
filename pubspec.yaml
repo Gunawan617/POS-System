@@ -11,7 +11,7 @@ dependencies:
   google_fonts: ^6.1.0
   flutter_riverpod: ^2.5.0
   pdf: ^3.11.0
-  printing: ^5.13.0
+  printing: ^5.14.2
   fl_chart: ^0.70.0
   http: ^1.2.1
   flutter_secure_storage: ^9.0.0
