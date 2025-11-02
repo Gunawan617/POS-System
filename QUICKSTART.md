@@ -14,14 +14,20 @@ flutter pub get
 flutter run
 ```
 
-### 3. Load Sample Data (1 menit)
+### 3. Login (30 detik)
+```
+Username: admin
+Password: admin123
+```
+
+### 4. Load Sample Data (1 menit)
 1. Buka aplikasi
 2. Tap icon **Produk** (📦) di bottom navigation
 3. Tap icon **download** (⬇️) di pojok kanan atas
 4. Tap **Ya** untuk konfirmasi
 5. ✅ 8 produk contoh berhasil ditambahkan!
 
-### 4. Coba Transaksi Pertama (2 menit)
+### 5. Coba Transaksi Pertama (2 menit)
 1. Tap icon **Kasir** (🧾) di bottom navigation
 2. Tap produk **Kopi Hitam** (Rp 7.000)
 3. Tap produk **Es Teh** (Rp 5.000)
@@ -32,7 +38,7 @@ flutter run
 8. Tap **OK**
 9. ✅ Transaksi pertama berhasil!
 
-### 5. Lihat Laporan (1 menit)
+### 6. Lihat Laporan (1 menit)
 1. Tap icon **Laporan** (📊) di bottom navigation
 2. Lihat statistik penjualan hari ini
 3. Lihat grafik penjualan 7 hari terakhir

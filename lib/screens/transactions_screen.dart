@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/transaction.dart';
 import '../providers/transaction_provider.dart';
+import '../services/print_service.dart';
+import '../services/storage_service.dart';
 import 'package:intl/intl.dart';
 
 class TransactionsScreen extends ConsumerWidget {
@@ -61,19 +64,9 @@ class TransactionsScreen extends ConsumerWidget {
                       Text('Pembayaran: ${transaction.paymentMethod}'),
                     ],
                   ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Bayar: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(transaction.paid)}',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      Text(
-                        'Kembali: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(transaction.change)}',
-                        style: const TextStyle(fontSize: 12, color: Colors.green),
-                      ),
-                    ],
+                  trailing: IconButton(
+                    icon: const Icon(Icons.print),
+                    onPressed: () => _printTransaction(context, ref, transaction),
                   ),
                   isThreeLine: true,
                 ),
@@ -87,3 +80,23 @@ class TransactionsScreen extends ConsumerWidget {
     );
   }
 }
+
+
+  Future<void> _printTransaction(
+    BuildContext context,
+    WidgetRef ref,
+    Transaction transaction,
+  ) async {
+    try {
+      final storage = StorageService();
+      final items = await storage.getTransactionItems(transaction.id!);
+      
+      await PrintService.printInvoiceA4(transaction, items);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal cetak: $e')),
+        );
+      }
+    }
+  }

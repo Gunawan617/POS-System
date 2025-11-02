@@ -1,5 +1,10 @@
 import 'base_model.dart';
 
+enum TransactionType {
+  sale,      // Penjualan normal
+  internal,  // Konsumsi internal (barista)
+}
+
 class Transaction extends BaseModel {
   DateTime date;
   double total;
@@ -8,6 +13,8 @@ class Transaction extends BaseModel {
   String paymentMethod;
   double paid;
   double change;
+  TransactionType type;
+  int? userId; // User yang melakukan transaksi
 
   Transaction({
     super.id,
@@ -18,6 +25,8 @@ class Transaction extends BaseModel {
     this.paymentMethod = 'Tunai',
     required this.paid,
     required this.change,
+    this.type = TransactionType.sale,
+    this.userId,
   });
 
   @override
@@ -31,6 +40,8 @@ class Transaction extends BaseModel {
       'paymentMethod': paymentMethod,
       'paid': paid,
       'change': change,
+      'type': type.name,
+      'userId': userId,
     };
   }
 
@@ -44,6 +55,11 @@ class Transaction extends BaseModel {
       paymentMethod: json['paymentMethod'] as String? ?? 'Tunai',
       paid: (json['paid'] as num?)?.toDouble() ?? 0,
       change: (json['change'] as num?)?.toDouble() ?? 0,
+      type: TransactionType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => TransactionType.sale,
+      ),
+      userId: json['userId'] as int?,
     );
   }
 }

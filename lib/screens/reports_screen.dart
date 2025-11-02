@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../models/transaction.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/product_provider.dart';
+import '../services/export_service.dart';
+import '../services/storage_service.dart';
 import 'package:intl/intl.dart';
 
 class ReportsScreen extends ConsumerWidget {
@@ -15,6 +19,48 @@ class ReportsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Laporan'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          transactionsAsync.when(
+            data: (transactions) => PopupMenuButton(
+              icon: const Icon(Icons.download),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'transactions',
+                  child: Row(
+                    children: [
+                      Icon(Icons.receipt_long),
+                      SizedBox(width: 8),
+                      Text('Export Transaksi'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'products',
+                  child: Row(
+                    children: [
+                      Icon(Icons.inventory),
+                      SizedBox(width: 8),
+                      Text('Export Produk'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'sales',
+                  child: Row(
+                    children: [
+                      Icon(Icons.analytics),
+                      SizedBox(width: 8),
+                      Text('Export Laporan Penjualan'),
+                    ],
+                  ),
+                ),
+              ],
+              onSelected: (value) => _handleExport(context, ref, value as String, transactions),
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
       ),
       body: transactionsAsync.when(
         data: (transactions) {
@@ -213,5 +259,55 @@ class ReportsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _handleExport(
+    BuildContext context,
+    WidgetRef ref,
+    String type,
+    List<Transaction> transactions,
+  ) async {
+    try {
+      switch (type) {
+        case 'transactions':
+          final storage = ref.read(storageServiceProvider);
+          final allItems = <List<TransactionItem>>[];
+          for (var transaction in transactions) {
+            final items = await storage.getTransactionItems(transaction.id!);
+            allItems.add(items);
+          }
+          await ExportService.exportTransactionsToExcel(transactions, allItems);
+          break;
+          
+        case 'products':
+          final productsAsync = ref.read(productsProvider);
+          productsAsync.whenData((products) async {
+            await ExportService.exportProductsToExcel(products);
+          });
+          break;
+          
+        case 'sales':
+          final now = DateTime.now();
+          final startOfMonth = DateTime(now.year, now.month, 1);
+          await ExportService.exportSalesReportToExcel(
+            transactions,
+            startOfMonth,
+            now,
+          );
+          break;
+      }
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Export berhasil! File akan dibagikan.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal export: $e')),
+        );
+      }
+    }
   }
 }

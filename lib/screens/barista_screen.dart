@@ -1,23 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/product.dart';
 import '../models/transaction.dart';
 import '../providers/product_provider.dart';
 import '../providers/transaction_provider.dart';
-import '../services/print_service.dart';
-import '../services/storage_service.dart';
+import '../providers/auth_provider.dart';
 import 'package:intl/intl.dart';
 
-class CashierScreen extends ConsumerStatefulWidget {
-  const CashierScreen({super.key});
+class BaristaScreen extends ConsumerStatefulWidget {
+  const BaristaScreen({super.key});
 
   @override
-  ConsumerState<CashierScreen> createState() => _CashierScreenState();
+  ConsumerState<BaristaScreen> createState() => _BaristaScreenState();
 }
 
-class _CashierScreenState extends ConsumerState<CashierScreen> {
+class _BaristaScreenState extends ConsumerState<BaristaScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
 
@@ -25,10 +23,11 @@ class _CashierScreenState extends ConsumerState<CashierScreen> {
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(productsProvider);
     final cart = ref.watch(cartProvider);
+    final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kasir'),
+        title: const Text('Ambil Produk (Konsumsi Internal)'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Row(
@@ -112,16 +111,27 @@ class _CashierScreenState extends ConsumerState<CashierScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: Theme.of(context).colorScheme.primaryContainer,
+                  color: Colors.orange[100],
                   child: const Row(
                     children: [
-                      Icon(Icons.shopping_cart),
+                      Icon(Icons.coffee_maker, color: Colors.orange),
                       SizedBox(width: 8),
-                      Text(
-                        'Keranjang',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Konsumsi Internal',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Stok akan berkurang, harga Rp 0',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -133,9 +143,9 @@ class _CashierScreenState extends ConsumerState<CashierScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey),
+                              Icon(Icons.coffee_outlined, size: 64, color: Colors.grey),
                               SizedBox(height: 16),
-                              Text('Keranjang kosong', style: TextStyle(color: Colors.grey)),
+                              Text('Belum ada produk', style: TextStyle(color: Colors.grey)),
                             ],
                           ),
                         )
@@ -161,26 +171,22 @@ class _CashierScreenState extends ConsumerState<CashierScreen> {
                   ),
                   child: Column(
                     children: [
-                      Row(
+                      const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Total',
+                          Text(
+                            'Total Item',
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
-                            NumberFormat.currency(
-                              locale: 'id_ID',
-                              symbol: 'Rp ',
-                              decimalDigits: 0,
-                            ).format(ref.read(cartProvider.notifier).total),
-                            style: const TextStyle(
-                              fontSize: 24,
+                            'GRATIS',
+                            style: TextStyle(
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                              color: Colors.orange,
                             ),
                           ),
                         ],
@@ -202,8 +208,8 @@ class _CashierScreenState extends ConsumerState<CashierScreen> {
                           Expanded(
                             flex: 2,
                             child: FilledButton(
-                              onPressed: cart.isEmpty ? null : _processPayment,
-                              child: const Text('Bayar'),
+                              onPressed: cart.isEmpty ? null : () => _processInternal(currentUser),
+                              child: const Text('Ambil'),
                             ),
                           ),
                         ],
@@ -263,14 +269,10 @@ class _CashierScreenState extends ConsumerState<CashierScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    NumberFormat.currency(
-                      locale: 'id_ID',
-                      symbol: 'Rp ',
-                      decimalDigits: 0,
-                    ).format(product.price),
+                    'Stok: ${product.stock}',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[600],
+                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -297,13 +299,9 @@ class _CashierScreenState extends ConsumerState<CashierScreen> {
                     item.product.name,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Text(
-                    NumberFormat.currency(
-                      locale: 'id_ID',
-                      symbol: 'Rp ',
-                      decimalDigits: 0,
-                    ).format(item.product.price),
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  const Text(
+                    'Gratis',
+                    style: TextStyle(color: Colors.orange, fontSize: 12),
                   ),
                 ],
               ),
@@ -337,18 +335,6 @@ class _CashierScreenState extends ConsumerState<CashierScreen> {
                 ),
               ],
             ),
-            SizedBox(
-              width: 80,
-              child: Text(
-                NumberFormat.currency(
-                  locale: 'id_ID',
-                  symbol: 'Rp ',
-                  decimalDigits: 0,
-                ).format(item.subtotal),
-                textAlign: TextAlign.right,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red),
               onPressed: () {
@@ -361,168 +347,57 @@ class _CashierScreenState extends ConsumerState<CashierScreen> {
     );
   }
 
-  Future<void> _processPayment() async {
+  Future<void> _processInternal(currentUser) async {
     final cart = ref.read(cartProvider);
-    final total = ref.read(cartProvider.notifier).total;
 
-    final paidController = TextEditingController();
+    final transaction = Transaction(
+      date: DateTime.now(),
+      total: 0, // Gratis untuk barista
+      paid: 0,
+      change: 0,
+      customer: currentUser?.name ?? 'Barista',
+      notes: 'Konsumsi Internal',
+      type: TransactionType.internal,
+      userId: currentUser?.id,
+    );
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Pembayaran'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Total: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(total)}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: paidController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Jumlah Bayar',
-                border: OutlineInputBorder(),
-                prefixText: 'Rp ',
-              ),
-              autofocus: true,
+    final items = cart.map((item) => TransactionItem(
+      transactionId: 0,
+      productId: item.product.id!,
+      productName: item.product.name,
+      qty: item.quantity,
+      price: 0, // Harga 0 untuk internal
+      subtotal: 0,
+    )).toList();
+
+    await ref.read(transactionsProvider.notifier).addTransaction(transaction, items);
+    ref.read(cartProvider.notifier).clear();
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Berhasil'),
+          content: Text('${items.length} item berhasil diambil untuk konsumsi internal.'),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Proses'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true && mounted) {
-      final paid = double.tryParse(paidController.text) ?? 0;
-      if (paid < total) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Jumlah bayar kurang!')),
-        );
-        return;
-      }
-
-      final change = paid - total;
-      final transaction = Transaction(
-        date: DateTime.now(),
-        total: total,
-        paid: paid,
-        change: change,
       );
-
-      final items = cart.map((item) => TransactionItem(
-        transactionId: 0,
-        productId: item.product.id!,
-        productName: item.product.name,
-        qty: item.quantity,
-        price: item.product.price,
-        subtotal: item.subtotal,
-      )).toList();
-
-      final transactionId = await ref.read(transactionsProvider.notifier).addTransaction(transaction, items);
-      transaction.id = transactionId;
-      
-      ref.read(cartProvider.notifier).clear();
-
-      if (mounted) {
-        final printInvoice = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Pembayaran Berhasil'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Total: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(total)}'),
-                Text('Bayar: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(paid)}'),
-                Text(
-                  'Kembalian: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(change)}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
-                ),
-                const SizedBox(height: 16),
-                const Text('Cetak struk?', style: TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Tidak'),
-              ),
-              FilledButton.icon(
-                onPressed: () => Navigator.pop(context, true),
-                icon: const Icon(Icons.print),
-                label: const Text('Cetak'),
-              ),
-            ],
-          ),
-        );
-
-        if (printInvoice == true && mounted) {
-          try {
-            await PrintService.printInvoice(transaction, items);
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Gagal cetak: $e')),
-              );
-            }
-          }
-        }
-      }
     }
   }
 
   Widget _buildProductImage(Product product) {
-    if (product.image != null && product.image!.isNotEmpty) {
-      return kIsWeb
-          ? Image.network(
-              product.image!,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[200],
-                  child: Center(
-                    child: Icon(
-                      Icons.coffee,
-                      size: 48,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                );
-              },
-            )
-          : Image.file(
-              File(product.image!),
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[200],
-                  child: Center(
-                    child: Icon(
-                      Icons.coffee,
-                      size: 48,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                );
-              },
-            );
+    if (product.image != null && File(product.image!).existsSync()) {
+      return Image.file(
+        File(product.image!),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
     }
     
     return Container(
